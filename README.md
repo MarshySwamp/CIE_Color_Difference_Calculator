@@ -1,3 +1,5 @@
+<img width="643" height="724" alt="dE-v2-0" src="https://github.com/user-attachments/assets/e4ca202c-ee52-4ee1-880d-d29e7b690ebd" />
+
 Calculates the color difference (ΔE/dE/Delta E) between two sources, directly inside Photoshop.
 
 Select from three industry-standard formulas: ΔE76 (ΔEab), ΔE94 and ΔE00 (ΔE2000).
