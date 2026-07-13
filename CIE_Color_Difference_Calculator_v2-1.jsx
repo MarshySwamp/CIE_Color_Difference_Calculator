@@ -8,6 +8,7 @@
       - Manual float entry to two decimal places (Photoshop Lab mode natively supports integers)
 
     Stephen Marsh
+    https://github.com/MarshySwamp/CIE_Color_Difference_Calculator
     https://community.adobe.com/t5/photoshop-ecosystem-discussions/how-does-photoshop-calculate-lab-values/m-p/15028840
 
 
@@ -30,7 +31,9 @@
                                Manual Entry). The initial Foreground/Background Lab values are stored once and used to restore when
                                switching back from samplers or manual entry.
     v1.11 - 11th July 2026:    Minor GUI change, moved the Manual Entry input panel into the Color Source panel.
-    v2.0 - 12th July 2026:     Added range validation/clamping to the Manual Entry fields
+    v2.0 - 12th July 2026:     Added range validation/clamping to the Manual Entry fields.
+    v2.1 - 13th July 2026:     Fixed a rounding display error in the results panel.
+
 */
 
 #target photoshop
@@ -60,7 +63,7 @@ function main() {
     // -----------------------------------------------------------------------
     // ScriptUI Dialog
     // -----------------------------------------------------------------------
-    var win = new Window("dialog", "CIE Color Difference Calculator (v2.0)");
+    var win = new Window("dialog", "CIE Color Difference Calculator (v2.1)");
     win.alignChildren = "fill";
     win.spacing = 10;
     win.margins = 16;
@@ -294,15 +297,25 @@ function main() {
         }
 
         // -----------------------------------------------------------------------
-        // Result value formatting - Foreground/Background and Color Sampler
-        // sources are always integers in Photoshop, so results are rounded to
-        // whole numbers for those modes. Manual Entry keeps 2 decimal places.
+        // v2.1 - Result value formatting.
+        // fmtComponent: for raw L*/a*/b* values and their direct deltas
+        // (deltaL/deltaA/deltaB are plain differences, so they stay integer
+        // whenever the inputs are integer). FG/BG and Color Sampler inputs
+        // are always whole numbers in Photoshop, so those modes display as
+        // integers; Manual Entry keeps 2 decimal places.
+        // fmt: for derived values (C*, h*, dE, deltaC, deltaH) which involve
+        // sqrt/trig and are not guaranteed to be whole numbers even when the
+        // L*/a*/b* inputs are integers - always shown to 2 decimal places.
         // -----------------------------------------------------------------------
-        function fmt(val) {
+        function fmtComponent(val) {
             if (colorSourceMode === "manual") {
                 return val.toFixed(2);
             }
             return Math.round(val).toString();
+        }
+
+        function fmt(val) {
+            return val.toFixed(2);
         }
 
         var deltaL = fL - bL;
@@ -325,9 +338,9 @@ function main() {
         // -----------------------------------------------------------------------
         // Update delta component labels
         // -----------------------------------------------------------------------
-        dLText.text = "\u0394L*: " + fmt(deltaL);
-        dAText.text = "\u0394a*: " + fmt(deltaA);
-        dBText.text = "\u0394b*: " + fmt(deltaB);
+        dLText.text = "\u0394L*: " + fmtComponent(deltaL);
+        dAText.text = "\u0394a*: " + fmtComponent(deltaA);
+        dBText.text = "\u0394b*: " + fmtComponent(deltaB);
         dCText.text = "\u0394C*: " + fmt(deltaC);
         dHText.text = "\u0394h*: " + fmt(deltaH) + "\u00B0";
 
@@ -337,16 +350,16 @@ function main() {
         var prefixes = getSummaryPrefixes();
 
         fgText.text =
-            prefixes.a + " (L*: " + fmt(fL) +
-            ", a*: " + fmt(fA) +
-            ", b*: " + fmt(fB) +
+            prefixes.a + " (L*: " + fmtComponent(fL) +
+            ", a*: " + fmtComponent(fA) +
+            ", b*: " + fmtComponent(fB) +
             ", C*: " + fmt(currentFgLCH.C) +
             ", h*: " + fmt(currentFgLCH.H) + "\u00B0)";
 
         bgText.text =
-            prefixes.b + " (L*: " + fmt(bL) +
-            ", a*: " + fmt(bA) +
-            ", b*: " + fmt(bB) +
+            prefixes.b + " (L*: " + fmtComponent(bL) +
+            ", a*: " + fmtComponent(bA) +
+            ", b*: " + fmtComponent(bB) +
             ", C*: " + fmt(currentBgLCH.C) +
             ", h*: " + fmt(currentBgLCH.H) + "\u00B0)";
 
@@ -356,9 +369,9 @@ function main() {
         win._alertText =
             headingText.text + "\n\n" +
             label + ": " + fmt(dE) + "\n\n" +
-            "\u0394L*: "   + fmt(deltaL) + "\n" +
-            "\u0394a*: "   + fmt(deltaA) + "\n" +
-            "\u0394b*: "   + fmt(deltaB) + "\n" +
+            "\u0394L*: "   + fmtComponent(deltaL) + "\n" +
+            "\u0394a*: "   + fmtComponent(deltaA) + "\n" +
+            "\u0394b*: "   + fmtComponent(deltaB) + "\n" +
             "\u0394C*: "   + fmt(deltaC) + "\n" +
             "\u0394h*: "   + fmt(deltaH) + "\u00B0\n\n" +
             fgText.text + "\n" +
