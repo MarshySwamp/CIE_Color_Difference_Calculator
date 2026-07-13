@@ -11,7 +11,6 @@
     https://github.com/MarshySwamp/CIE_Color_Difference_Calculator
     https://community.adobe.com/t5/photoshop-ecosystem-discussions/how-does-photoshop-calculate-lab-values/m-p/15028840
 
-
     Changelog:
     v1.0 - 10th December 2024: Private testing.
     v1.1 - 10th December 2024: Initial public release, no GUI.
@@ -33,7 +32,6 @@
     v1.11 - 11th July 2026:    Minor GUI change, moved the Manual Entry input panel into the Color Source panel.
     v2.0 - 12th July 2026:     Added range validation/clamping to the Manual Entry fields.
     v2.1 - 13th July 2026:     Fixed a rounding display error in the results panel.
-
 */
 
 #target photoshop
@@ -65,21 +63,21 @@ function main() {
     // -----------------------------------------------------------------------
     var win = new Window("dialog", "CIE Color Difference Calculator (v2.1)");
     win.alignChildren = "fill";
-    win.spacing = 10;
-    win.margins = 16;
+    win.spacing = 12;
+    win.margins = 12;
 
     // -----------------------------------------------------------------------
     // Colour source panel: Foreground/Background, Color Samplers, Manual Entry
     // -----------------------------------------------------------------------
     var sourcePanel = win.add("panel", undefined, "Color Source");
     sourcePanel.alignChildren = "left";
-    sourcePanel.spacing = 8;
+    sourcePanel.spacing = 12;
     sourcePanel.margins = 12;
 
     var sourceGroup = sourcePanel.add("group");
     sourceGroup.orientation = "column";
     sourceGroup.alignChildren = "left";
-    sourceGroup.spacing = 8;
+    sourceGroup.spacing = 12;
 
     var rbFgBg = sourceGroup.add("radiobutton", undefined, "Use Foreground/Background Colors");
     var rbSampler = sourceGroup.add("radiobutton", undefined, "Use Color Samplers (Color Sampler 1 vs. Color Sampler 2)");
@@ -92,8 +90,8 @@ function main() {
     var manualEntryPanel = sourceGroup.add("panel", undefined, "");
     manualEntryPanel.orientation = "column";
     manualEntryPanel.alignChildren = "left";
-    manualEntryPanel.spacing = 8;
-    manualEntryPanel.margins = 14,8,8,8; // Visually indent and align the content with panel label
+    manualEntryPanel.spacing = 12;
+    manualEntryPanel.margins = 12;
 
     // -----------------------------------------------------------------------
     // Manual entry row 1
@@ -101,23 +99,23 @@ function main() {
     var manOneInputPanel = manualEntryPanel.add("group");
     manOneInputPanel.orientation = "row";
     manOneInputPanel.alignChildren = "center";
-    manOneInputPanel.spacing = 6;
+    manOneInputPanel.spacing = 12;
 
     manOneInputPanel.add("statictext", undefined, "Manual Entry 1:");
 
     manOneInputPanel.add("statictext", undefined, "L*:");
     var manOneL = manOneInputPanel.add("editnumber", undefined, initialFgLab[0]);
-    manOneL.preferredSize.width = 70;
+    manOneL.preferredSize.width = 40;
     manOneL.helpTip = "Manual Entry 1 L* (0 to 100.00)";
 
     manOneInputPanel.add("statictext", undefined, "a*:");
     var manOneA = manOneInputPanel.add("editnumber", undefined, initialFgLab[1]);
-    manOneA.preferredSize.width = 70;
+    manOneA.preferredSize.width = 40;
     manOneA.helpTip = "Manual Entry 1 a* (-128.00 to +127.00)";
 
     manOneInputPanel.add("statictext", undefined, "b*:");
     var manOneB = manOneInputPanel.add("editnumber", undefined, initialFgLab[2]);
-    manOneB.preferredSize.width = 70;
+    manOneB.preferredSize.width = 40;
     manOneB.helpTip = "Manual Entry 1 b* (-128.00 to +127.00)";
 
     // -----------------------------------------------------------------------
@@ -126,23 +124,23 @@ function main() {
     var manTwoInputPanel = manualEntryPanel.add("group");
     manTwoInputPanel.orientation = "row";
     manTwoInputPanel.alignChildren = "center";
-    manTwoInputPanel.spacing = 6;
+    manTwoInputPanel.spacing = 12;
 
     manTwoInputPanel.add("statictext", undefined, "Manual Entry 2:");
 
     manTwoInputPanel.add("statictext", undefined, "L*:");
     var manTwoL = manTwoInputPanel.add("editnumber", undefined, initialBgLab[0]);
-    manTwoL.preferredSize.width = 70;
+    manTwoL.preferredSize.width = 40;
     manTwoL.helpTip = "Manual Entry 2 L* (0 to 100.00)";
 
     manTwoInputPanel.add("statictext", undefined, "a*:");
     var manTwoA = manTwoInputPanel.add("editnumber", undefined, initialBgLab[1]);
-    manTwoA.preferredSize.width = 70;
+    manTwoA.preferredSize.width = 40;
     manTwoA.helpTip = "Manual Entry 2 a* (-128.00 to +127.00)";
 
     manTwoInputPanel.add("statictext", undefined, "b*:");
     var manTwoB = manTwoInputPanel.add("editnumber", undefined, initialBgLab[2]);
-    manTwoB.preferredSize.width = 70;
+    manTwoB.preferredSize.width = 40;
     manTwoB.helpTip = "Manual Entry 2 b* (-128.00 to +127.00)";
 
     // -----------------------------------------------------------------------
@@ -150,7 +148,7 @@ function main() {
     // -----------------------------------------------------------------------
     var panel = win.add("panel", undefined, "Color Differene Results");
     panel.alignChildren = "left";
-    panel.spacing = 8;
+    panel.spacing = 12;
     panel.margins = 12;
 
     // -----------------------------------------------------------------------
@@ -217,7 +215,7 @@ function main() {
     // -----------------------------------------------------------------------
     var btnGroup = win.add("group");
     btnGroup.alignment = "right";
-    btnGroup.spacing = 8;
+    btnGroup.spacing = 12;
 
     var cancelBtn = btnGroup.add("button", undefined, "Cancel", { name: "cancel" });
     var copyBtn   = btnGroup.add("button", undefined, "Copy");
