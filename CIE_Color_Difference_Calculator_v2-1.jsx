@@ -1,5 +1,5 @@
 /*
-    Calculates the CIE colour difference (dE76 / dE94 / dE2000) between either:
+    Calculates the CIE colour difference (dE76/dE94/dE2000) between either:
 
       - the Foreground and Background colors
         or
@@ -19,19 +19,19 @@
     v1.4 - 9th June 2026:      Added Delta L, a, b, C, h component breakdown & dE traffic light colouring.
     v1.5 - 17th June 2026:     Added editable L, a, b floating value input fields for foreground and background, removed the
                                traffic light colouring due to legibility issues.
-    v1.6 - 1st July 2026:      Combined the separate dE76/ dE94/dE00 scripts into a single script with radio buttons to
+    v1.6 - 1st July 2026:      Combined the separate dE76/dE94/dE00 scripts into a single script with radio buttons to
                                switch between the three formulas.
     v1.7 - 1st July 2026:      Changed the colour source from the foreground/background swatches to Color Sampler 1 and
                                Color Sampler 2 on the active document.
     v1.8 - 1st July 2026:      Combined v1.6 and v1.7 into a single script. Added a checkbox to toggle between Foreground/Background
-                               and Color Sampler 1/2 as the colour source.
+                               and Color Sampler 1 and 2 as the colour source.
     v1.9 - 3rd July 2026:      Minor GUI change, moved the "Enable manual entry" checkbox under the "Use Color Samplers" checkbox.
-    v1.10 - 5th July 2026:     Replaced the two checkboxes with three radio buttons (Foreground/Background, Color Samplers and
+    v1.10 - 5th July 2026:     Replaced the two source checkboxes with three radio buttons (Foreground/Background, Color Samplers and
                                Manual Entry). The initial Foreground/Background Lab values are stored once and used to restore when
                                switching back from samplers or manual entry.
     v1.11 - 11th July 2026:    Minor GUI change, moved the Manual Entry input panel into the Color Source panel.
     v2.0 - 12th July 2026:     Added range validation/clamping to the Manual Entry fields.
-    v2.1 - 13th July 2026:     Fixed a rounding display error in the results panel.
+    v2.1 - 13th July 2026:     Fixed a rounding display error in the results panel. Minor GUI changes.
 */
 
 #target photoshop
@@ -384,7 +384,7 @@ function main() {
     rbdE00.onClick = recalculate;
 
     // -----------------------------------------------------------------------
-    // Radio buttons: switch between Foreground/Background, Color Sampler 1&2,
+    // Radio buttons: switch between Foreground/Background, Color Sampler 1 & 2,
     // and Manual Entry as the colour source. Only one can be active at a time.
     // -----------------------------------------------------------------------
 
@@ -537,6 +537,15 @@ function labToLCH(lab) {
 }
 
 // -----------------------------------------------------------------------
+// I'm unsure of the source for the dE formula's, however, I'm guessing
+// that credit should go to Bruce Lindbloom:
+// http://www.brucelindbloom.com/Eqn_DeltaE_CIE76.html
+// http://www.brucelindbloom.com/Eqn_DeltaE_CIE94.html
+// http://www.brucelindbloom.com/Eqn_DeltaE_CIE2000.html
+// http://www.brucelindbloom.com/ColorDifferenceCalc.html
+// -----------------------------------------------------------------------
+
+// -----------------------------------------------------------------------
 // dE76 (CIE76 / dEab) - simple Euclidean distance in Lab space
 // -----------------------------------------------------------------------
 function calculateCIEdE76(lab1, lab2) {
@@ -574,7 +583,7 @@ function calculateCIEdE94(lab1, lab2) {
 }
 
 // -----------------------------------------------------------------------
-// dE00 (CIEDE2000) - Formula best matches human vision
+// dE00 (CIEDE2000) - Formula "best matches" human vision
 // -----------------------------------------------------------------------
 function calculateCIEdE00(lab1, lab2) {
     var kL = 1, kC = 1, kH = 1;
