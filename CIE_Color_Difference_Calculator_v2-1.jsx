@@ -32,7 +32,7 @@
     v1.11 - 11th July 2026:    Minor GUI change, moved the Manual Entry input panel into the Color Source panel.
     v2.0 - 12th July 2026:     Added range validation/clamping to the Manual Entry fields.
     v2.1 - 13th July 2026:     Fixed a rounding display error in the results panel. Minor GUI changes.
-    v2.2 - 13th July 2026:     Swapped Delta L, a, b, C, h subtraction calculation order (to bL - fL etc), to better fit my expectation.
+    v2.2 - 27th July 2026:     Swapped Delta L, a, b, C, h subtraction calculation order (to bL - fL etc), to better fit my expectation.
 
 */
 
