@@ -32,6 +32,8 @@
     v1.11 - 11th July 2026:    Minor GUI change, moved the Manual Entry input panel into the Color Source panel.
     v2.0 - 12th July 2026:     Added range validation/clamping to the Manual Entry fields.
     v2.1 - 13th July 2026:     Fixed a rounding display error in the results panel. Minor GUI changes.
+    v2.2 - 13th July 2026:     Swapped Delta L, a, b, C, h subtraction calculation order (to bL - fL etc), to better fit my expectation.
+
 */
 
 #target photoshop
@@ -61,7 +63,7 @@ function main() {
     // -----------------------------------------------------------------------
     // ScriptUI Dialog
     // -----------------------------------------------------------------------
-    var win = new Window("dialog", "CIE Color Difference Calculator (v2.1)");
+    var win = new Window("dialog", "CIE Color Difference Calculator (v2.2)");
     win.alignChildren = "fill";
     win.spacing = 12;
     win.margins = 12;
@@ -304,6 +306,13 @@ function main() {
         // fmt: for derived values (C*, h*, dE, deltaC, deltaH) which involve
         // sqrt/trig and are not guaranteed to be whole numbers even when the
         // L*/a*/b* inputs are integers - always shown to 2 decimal places.
+        //
+        // v2.2 - Swapped the calculation order of the ref/sample to sample/ref:
+        //  ΔL* = Sample (2) - Standard/Reference (1)
+        //  Δa* = Sample (2) - Standard/Reference (1)
+        //  Δb* = Sample (2) - Standard/Reference (1)
+        //  ΔC* = Sample (2) - Standard/Reference (1)
+        //  Δh* = Sample (2) - Standard/Reference (1)
         // -----------------------------------------------------------------------
         function fmtComponent(val) {
             if (colorSourceMode === "manual") {
@@ -316,15 +325,15 @@ function main() {
             return val.toFixed(2);
         }
 
-        var deltaL = fL - bL;
-        var deltaA = fA - bA;
-        var deltaB = fB - bB;
-        var deltaC = currentFgLCH.C - currentBgLCH.C;
+        var deltaL = bL - fL;
+        var deltaA = bA - fA;
+        var deltaB = bB - fB;
+        var deltaC = currentBgLCH.C - currentFgLCH.C;
 
         // -----------------------------------------------------------------------
         // Hue angle difference, normalised to [-180, +180]
         // -----------------------------------------------------------------------
-        var deltaH = currentFgLCH.H - currentBgLCH.H;
+        var deltaH = currentBgLCH.H - currentFgLCH.H;
         if (deltaH >  180) { deltaH -= 360; }
         if (deltaH < -180) { deltaH += 360; }
 
