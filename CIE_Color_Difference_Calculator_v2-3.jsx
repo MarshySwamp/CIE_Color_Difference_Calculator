@@ -12,27 +12,29 @@
     https://community.adobe.com/t5/photoshop-ecosystem-discussions/how-does-photoshop-calculate-lab-values/m-p/15028840
 
     Changelog:
-    v1.0 - 10th December 2024: Private testing.
-    v1.1 - 10th December 2024: Initial public release, no GUI.
-    v1.2 - 31st May 2026:      Added (LCh) Lightness, Chroma & hue readings.
-    v1.3 - 1st June 2026:      Replaced the native alert with a ScriptUI dialog with copy to clipboard button.
-    v1.4 - 9th June 2026:      Added Delta L, a, b, C, h component breakdown & dE traffic light colouring.
-    v1.5 - 17th June 2026:     Added editable L, a, b floating value input fields for foreground and background, removed the
-                               traffic light colouring due to legibility issues.
-    v1.6 - 1st July 2026:      Combined the separate dE76/dE94/dE00 scripts into a single script with radio buttons to
-                               switch between the three formulas.
-    v1.7 - 1st July 2026:      Changed the colour source from the foreground/background swatches to Color Sampler 1 and
-                               Color Sampler 2 on the active document.
-    v1.8 - 1st July 2026:      Combined v1.6 and v1.7 into a single script. Added a checkbox to toggle between Foreground/Background
-                               and Color Sampler 1 and 2 as the colour source.
-    v1.9 - 3rd July 2026:      Minor GUI change, moved the "Enable manual entry" checkbox under the "Use Color Samplers" checkbox.
-    v1.10 - 5th July 2026:     Replaced the two source checkboxes with three radio buttons (Foreground/Background, Color Samplers and
-                               Manual Entry). The initial Foreground/Background Lab values are stored once and used to restore when
-                               switching back from samplers or manual entry.
-    v1.11 - 11th July 2026:    Minor GUI change, moved the Manual Entry input panel into the Color Source panel.
-    v2.0 - 12th July 2026:     Added range validation/clamping to the Manual Entry fields.
-    v2.1 - 13th July 2026:     Fixed a rounding display error in the results panel. Minor GUI changes.
-    v2.2 - 27th July 2026:     Swapped Delta L, a, b, C, h subtraction calculation order (to bL - fL etc), to better fit my expectation.
+    v1.0 - 10th December 2024:  Private testing.
+    v1.1 - 10th December 2024:  Initial public release, no GUI.
+    v1.2 - 31st May 2026:       Added (LCh) Lightness, Chroma & hue readings.
+    v1.3 - 1st June 2026:       Replaced the native alert with a ScriptUI dialog with copy to clipboard button.
+    v1.4 - 9th June 2026:       Added Delta L, a, b, C, h component breakdown & dE traffic light colouring.
+    v1.5 - 17th June 2026:      Added editable L, a, b floating value input fields for foreground and background, removed the
+                                traffic light colouring due to legibility issues.
+    v1.6 - 1st July 2026:       Combined the separate dE76/dE94/dE00 scripts into a single script with radio buttons to
+                                switch between the three formulas.
+    v1.7 - 1st July 2026:       Changed the colour source from the foreground/background swatches to Color Sampler 1 and
+                                Color Sampler 2 on the active document.
+    v1.8 - 1st July 2026:       Combined v1.6 and v1.7 into a single script. Added a checkbox to toggle between Foreground/Background
+                                and Color Sampler 1 and 2 as the colour source.
+    v1.9 - 3rd July 2026:       Minor GUI change, moved the "Enable manual entry" checkbox under the "Use Color Samplers" checkbox.
+    v1.10 - 5th July 2026:      Replaced the two source checkboxes with three radio buttons (Foreground/Background, Color Samplers and
+                                Manual Entry). The initial Foreground/Background Lab values are stored once and used to restore when
+                                switching back from samplers or manual entry.
+    v1.11 - 11th July 2026:     Minor GUI change, moved the Manual Entry input panel into the Color Source panel.
+    v2.0 - 12th July 2026:      Added range validation/clamping to the Manual Entry fields.
+    v2.1 - 13th July 2026:      Fixed a rounding display error in the results panel. Minor GUI changes.
+    v2.2 - 27th July 2026:      Swapped Delta L, a, b, C, h subtraction calculation order from reference/sample to sample/reference.
+    v2.3 - 31st July 2026:      Added a "Round values" checkbox (to 2 decimal places), when off the results are now truncated to 6
+                                decimal places. Checking the box restores the previous rounding behaviour. Minor GUI changes.
 
 */
 
@@ -63,10 +65,12 @@ function main() {
     // -----------------------------------------------------------------------
     // ScriptUI Dialog
     // -----------------------------------------------------------------------
-    var win = new Window("dialog", "CIE Color Difference Calculator (v2.2)");
+    var win = new Window("dialog", "CIE Color Difference Calculator (v2.3)");
     win.alignChildren = "fill";
     win.spacing = 12;
     win.margins = 12;
+    //win.preferredSize.width = 655;
+
 
     // -----------------------------------------------------------------------
     // Colour source panel: Foreground/Background, Color Samplers, Manual Entry
@@ -81,13 +85,14 @@ function main() {
     sourceGroup.alignChildren = "left";
     sourceGroup.spacing = 12;
 
-    var rbFgBg = sourceGroup.add("radiobutton", undefined, "Use Foreground/Background Colors");
-    var rbSampler = sourceGroup.add("radiobutton", undefined, "Use Color Samplers (Color Sampler 1 vs. Color Sampler 2)");
-    var rbManual = sourceGroup.add("radiobutton", undefined, "Manual Entry (L*, a*, b*)");
-    rbFgBg.value = true;   // default: Foreground/Background
+    var rbFgBg = sourceGroup.add("radiobutton", undefined, "Use Foreground Color (Reference) vs. Background Color (Sample)");
+    var rbSampler = sourceGroup.add("radiobutton", undefined, "Use Color Sampler 1 (Reference) vs. Color Sampler 2 (Sample)");
+    var rbManual = sourceGroup.add("radiobutton", undefined, "Manual Entry 1 (Reference) vs. Manual Entry 2 (Sample)");
+    rbFgBg.value = true; // default: Foreground/Background
 
     // -----------------------------------------------------------------------
     // Manual entry panel
+    // v2.3 - GUI update to columns for visual alignment
     // -----------------------------------------------------------------------
     var manualEntryPanel = sourceGroup.add("panel", undefined, "");
     manualEntryPanel.orientation = "column";
@@ -103,7 +108,8 @@ function main() {
     manOneInputPanel.alignChildren = "center";
     manOneInputPanel.spacing = 12;
 
-    manOneInputPanel.add("statictext", undefined, "Manual Entry 1:");
+    var manOneLabel = manOneInputPanel.add("statictext", undefined, "Manual Entry 1 (Reference):");
+    manOneLabel.preferredSize.width = 135; // Space before manual entry fields
 
     manOneInputPanel.add("statictext", undefined, "L*:");
     var manOneL = manOneInputPanel.add("editnumber", undefined, initialFgLab[0]);
@@ -128,7 +134,8 @@ function main() {
     manTwoInputPanel.alignChildren = "center";
     manTwoInputPanel.spacing = 12;
 
-    manTwoInputPanel.add("statictext", undefined, "Manual Entry 2:");
+    var manTwoLabel = manTwoInputPanel.add("statictext", undefined, "Manual Entry 2 (Sample):");
+    manTwoLabel.preferredSize.width = 135; // Space before manual entry fields
 
     manTwoInputPanel.add("statictext", undefined, "L*:");
     var manTwoL = manTwoInputPanel.add("editnumber", undefined, initialBgLab[0]);
@@ -167,15 +174,48 @@ function main() {
     var rbdE00 = modeGroup.add("radiobutton", undefined, "\u0394E00");
     rbdE00.value = true; // default: dE00
 
+    // -----------------------------------------------------------------------
+    // Checkbox: toggles whether the 2-decimal-place results below are
+    // rounded (2 decimal places) or truncated (6 decimal places)
+    // -----------------------------------------------------------------------
+    var cbRoundValues = panel.add("checkbox", undefined, "Round Values to 2 Decimal Places");
+    cbRoundValues.value = true; // default value
+    //cbRoundValues.helpTip = "When checked, results are rounded to 2 decimal places.\nWhen unchecked, results are displayed at 6 decimal places.";
+
+    // -----------------------------------------------------------------------
+    // Truncates val to the given number of decimal places (toward zero),
+    // guarding against floating-point representation noise (e.g. treating
+    // 2.9999999999996 as 3, not 2.99) by cleaning up the value at a much
+    // finer precision before truncating.
+    // -----------------------------------------------------------------------
+    function truncateToFixed(val, decimals) {
+        var factor = Math.pow(10, decimals);
+        var scaled = val * factor;
+        var cleanedScaled = Math.round(scaled * 1e6) / 1e6;
+        var truncatedScaled = (cleanedScaled < 0) ? Math.ceil(cleanedScaled) : Math.floor(cleanedScaled);
+        return (truncatedScaled / factor).toFixed(decimals);
+    }
+
+    // -----------------------------------------------------------------------
+    // Formats val, rounding to 2 decimal places or truncating to 6 decimal
+    // places depending on the "Round values" checkbox state.
+    // -----------------------------------------------------------------------
+    function formatDecimal(val) {
+        if (cbRoundValues.value) {
+            return val.toFixed(2);
+        }
+        return truncateToFixed(val, 6);
+    }
+
     var headingText = panel.add("statictext", undefined,
         "Foreground vs. Background Color Picker Difference:");
-    headingText.preferredSize.width = 360;
+    headingText.preferredSize.width = 470;
 
     // -----------------------------------------------------------------------
     // dE (bold)
     // -----------------------------------------------------------------------
     var deText = panel.add("statictext", undefined, "");
-    deText.preferredSize.width = 360;
+    deText.preferredSize.width = 470;
     deText.graphics.font = ScriptUI.newFont(
         deText.graphics.font.name,
         ScriptUI.FontStyle.BOLD,
@@ -186,31 +226,35 @@ function main() {
     // Delta components
     // -----------------------------------------------------------------------
     var dLText = panel.add("statictext", undefined, "");
-    dLText.preferredSize.width = 360;
+    dLText.preferredSize.width = 470;
 
     var dAText = panel.add("statictext", undefined, "");
-    dAText.preferredSize.width = 360;
+    dAText.preferredSize.width = 470;
 
     var dBText = panel.add("statictext", undefined, "");
-    dBText.preferredSize.width = 360;
+    dBText.preferredSize.width = 470;
 
     var dCText = panel.add("statictext", undefined, "");
-    dCText.preferredSize.width = 360;
+    dCText.preferredSize.width = 470;
 
     var dHText = panel.add("statictext", undefined, "");
-    dHText.preferredSize.width = 360;
+    dHText.preferredSize.width = 470;
 
     // -----------------------------------------------------------------------
     // Sampler 1 / Foreground summary label
     // -----------------------------------------------------------------------
-    var fgText = panel.add("statictext", undefined, "", { multiline: true });
-    fgText.preferredSize.width = 360;
+    var fgText = panel.add("statictext", undefined, "", {
+        multiline: true
+    });
+    fgText.preferredSize.width = 470;
 
     // -----------------------------------------------------------------------
     // Sampler 2 / Background summary label
     // -----------------------------------------------------------------------
-    var bgText = panel.add("statictext", undefined, "", { multiline: true });
-    bgText.preferredSize.width = 360;
+    var bgText = panel.add("statictext", undefined, "", {
+        multiline: true
+    });
+    bgText.preferredSize.width = 470;
 
     // -----------------------------------------------------------------------
     // Buttons
@@ -219,8 +263,10 @@ function main() {
     btnGroup.alignment = "right";
     btnGroup.spacing = 12;
 
-    var cancelBtn = btnGroup.add("button", undefined, "Cancel", { name: "cancel" });
-    var copyBtn   = btnGroup.add("button", undefined, "Copy");
+    var cancelBtn = btnGroup.add("button", undefined, "Cancel", {
+        name: "cancel"
+    });
+    var copyBtn = btnGroup.add("button", undefined, "Copy");
 
     // -----------------------------------------------------------------------
     // Helper: returns the currently selected dE mode as a string
@@ -250,11 +296,20 @@ function main() {
     // -----------------------------------------------------------------------
     function getSummaryPrefixes() {
         if (colorSourceMode === "sampler") {
-            return { a: "Color Sampler 1", b: "Color Sampler 2" };
+            return {
+                a: "Color Sampler 1",
+                b: "Color Sampler 2"
+            };
         } else if (colorSourceMode === "manual") {
-            return { a: "Manual Entry 1", b: "Manual Entry 2" };
+            return {
+                a: "Manual Entry 1",
+                b: "Manual Entry 2"
+            };
         }
-        return { a: "Foreground", b: "Background" };
+        return {
+            a: "Foreground",
+            b: "Background"
+        };
     }
 
     // -----------------------------------------------------------------------
@@ -265,16 +320,28 @@ function main() {
         var fL = manOneL.value;
         var fA = manOneA.value;
         var fB = manOneB.value;
-        if (isNaN(fL)) { fL = 0; }
-        if (isNaN(fA)) { fA = 0; }
-        if (isNaN(fB)) { fB = 0; }
+        if (isNaN(fL)) {
+            fL = 0;
+        }
+        if (isNaN(fA)) {
+            fA = 0;
+        }
+        if (isNaN(fB)) {
+            fB = 0;
+        }
 
         var bL = manTwoL.value;
         var bA = manTwoA.value;
         var bB = manTwoB.value;
-        if (isNaN(bL)) { bL = 0; }
-        if (isNaN(bA)) { bA = 0; }
-        if (isNaN(bB)) { bB = 0; }
+        if (isNaN(bL)) {
+            bL = 0;
+        }
+        if (isNaN(bA)) {
+            bA = 0;
+        }
+        if (isNaN(bB)) {
+            bB = 0;
+        }
 
         var currentFgLab = [fL, fA, fB];
         var currentBgLab = [bL, bA, bB];
@@ -316,13 +383,13 @@ function main() {
         // -----------------------------------------------------------------------
         function fmtComponent(val) {
             if (colorSourceMode === "manual") {
-                return val.toFixed(2);
+                return formatDecimal(val);
             }
             return Math.round(val).toString();
         }
 
         function fmt(val) {
-            return val.toFixed(2);
+            return formatDecimal(val);
         }
 
         var deltaL = bL - fL;
@@ -334,8 +401,12 @@ function main() {
         // Hue angle difference, normalised to [-180, +180]
         // -----------------------------------------------------------------------
         var deltaH = currentBgLCH.H - currentFgLCH.H;
-        if (deltaH >  180) { deltaH -= 360; }
-        if (deltaH < -180) { deltaH += 360; }
+        if (deltaH > 180) {
+            deltaH -= 360;
+        }
+        if (deltaH < -180) {
+            deltaH += 360;
+        }
 
         // -----------------------------------------------------------------------
         // Update dE label text
@@ -376,11 +447,11 @@ function main() {
         win._alertText =
             headingText.text + "\n\n" +
             label + ": " + fmt(dE) + "\n\n" +
-            "\u0394L*: "   + fmtComponent(deltaL) + "\n" +
-            "\u0394a*: "   + fmtComponent(deltaA) + "\n" +
-            "\u0394b*: "   + fmtComponent(deltaB) + "\n" +
-            "\u0394C*: "   + fmt(deltaC) + "\n" +
-            "\u0394h*: "   + fmt(deltaH) + "\u00B0\n\n" +
+            "\u0394L*: " + fmtComponent(deltaL) + "\n" +
+            "\u0394a*: " + fmtComponent(deltaA) + "\n" +
+            "\u0394b*: " + fmtComponent(deltaB) + "\n" +
+            "\u0394C*: " + fmt(deltaC) + "\n" +
+            "\u0394h*: " + fmt(deltaH) + "\u00B0\n\n" +
             fgText.text + "\n" +
             bgText.text;
     }
@@ -391,6 +462,7 @@ function main() {
     rbdE76.onClick = recalculate;
     rbdE94.onClick = recalculate;
     rbdE00.onClick = recalculate;
+    cbRoundValues.onClick = recalculate;
 
     // -----------------------------------------------------------------------
     // Radio buttons: switch between Foreground/Background, Color Sampler 1 & 2,
@@ -403,7 +475,7 @@ function main() {
 
     // Foreground / Background - restores the Lab values captured at script
     // start, so the original swatches are always recoverable.
-    rbFgBg.onClick = function () {
+    rbFgBg.onClick = function() {
         manOneL.value = initialFgLab[0];
         manOneA.value = initialFgLab[1];
         manOneB.value = initialFgLab[2];
@@ -423,7 +495,7 @@ function main() {
     // Color Samplers - validates that a document with at least 2 color
     // samplers is available before committing to this mode.
     // -----------------------------------------------------------------------
-    rbSampler.onClick = function () {
+    rbSampler.onClick = function() {
 
         if (!app.documents.length) {
             alert("No document open.\n\nOpen a document and place at least 2 color samplers before using this mode.");
@@ -436,9 +508,9 @@ function main() {
 
         if (activeDoc.colorSamplers.length < 2) {
             alert("At least 2 color samplers are required.\n\n" +
-                  "Currently found: " + activeDoc.colorSamplers.length + "\n\n" +
-                  "Add color samplers with the Color Sampler tool (I) and try again.\n" +
-                  "This mode compares Color Sampler 1 vs. Color Sampler 2.");
+                "Currently found: " + activeDoc.colorSamplers.length + "\n\n" +
+                "Add color samplers with the Color Sampler tool (I) and try again.\n" +
+                "This mode compares Color Sampler 1 vs. Color Sampler 2.");
             rbFgBg.value = true;
             colorSourceMode = "fgbg";
             return;
@@ -470,7 +542,7 @@ function main() {
     // already showing (whichever source was active) are left in place as a
     // convenient starting point for manual adjustment.
     // -----------------------------------------------------------------------
-    rbManual.onClick = function () {
+    rbManual.onClick = function() {
         colorSourceMode = "manual";
         manOneInputPanel.enabled = true;
         manTwoInputPanel.enabled = true;
@@ -489,12 +561,18 @@ function main() {
     }
 
     function makeManualFieldValidator(field, min, max) {
-        return function () {
+        return function() {
             var v = field.value;
-            if (isNaN(v)) { v = 0; }
+            if (isNaN(v)) {
+                v = 0;
+            }
             v = roundTo2(v);
-            if (v < min) { v = min; }
-            if (v > max) { v = max; }
+            if (v < min) {
+                v = min;
+            }
+            if (v > max) {
+                v = max;
+            }
             field.value = v;
             recalculate();
         };
@@ -514,11 +592,11 @@ function main() {
     // -----------------------------------------------------------------------
     // Button handlers
     // -----------------------------------------------------------------------
-    cancelBtn.onClick = function () {
+    cancelBtn.onClick = function() {
         win.close();
     };
 
-    copyBtn.onClick = function () {
+    copyBtn.onClick = function() {
         var d = new ActionDescriptor();
         d.putString(stringIDToTypeID("textData"), win._alertText || "");
         executeAction(stringIDToTypeID("textToClipboard"), d, DialogModes.NO);
@@ -541,8 +619,14 @@ function labToLCH(lab) {
     var L = lab[0];
     var C = Math.sqrt(lab[1] * lab[1] + lab[2] * lab[2]);
     var H = (Math.atan2(lab[2], lab[1]) * 180) / Math.PI;
-    if (H < 0) { H += 360; }
-    return { L: L, C: C, H: H };
+    if (H < 0) {
+        H += 360;
+    }
+    return {
+        L: L,
+        C: C,
+        H: H
+    };
 }
 
 // -----------------------------------------------------------------------
@@ -568,8 +652,11 @@ function calculateCIEdE76(lab1, lab2) {
 // dE94 (CIE94) - Formula improved for perceptual uniformity
 // -----------------------------------------------------------------------
 function calculateCIEdE94(lab1, lab2) {
-    var kL = 1, kC = 1, kH = 1;
-    var K1 = 0.045, K2 = 0.015;
+    var kL = 1,
+        kC = 1,
+        kH = 1;
+    var K1 = 0.045,
+        K2 = 0.015;
 
     var deltaL = lab1[0] - lab2[0];
     var deltaA = lab1[1] - lab2[1];
@@ -595,9 +682,13 @@ function calculateCIEdE94(lab1, lab2) {
 // dE00 (CIEDE2000) - Formula "best matches" human vision
 // -----------------------------------------------------------------------
 function calculateCIEdE00(lab1, lab2) {
-    var kL = 1, kC = 1, kH = 1;
+    var kL = 1,
+        kC = 1,
+        kH = 1;
 
-    function degToRad(deg) { return (deg * Math.PI) / 180; }
+    function degToRad(deg) {
+        return (deg * Math.PI) / 180;
+    }
 
     var c1 = Math.sqrt(lab1[1] * lab1[1] + lab1[2] * lab1[2]);
     var c2 = Math.sqrt(lab2[1] * lab2[1] + lab2[2] * lab2[2]);
@@ -617,24 +708,24 @@ function calculateCIEdE00(lab1, lab2) {
     if (h1Prime < 0) h1Prime += 2 * Math.PI;
     if (h2Prime < 0) h2Prime += 2 * Math.PI;
 
-    var hBarPrime = Math.abs(h1Prime - h2Prime) > Math.PI
-        ? (h1Prime + h2Prime + 2 * Math.PI) / 2
-        : (h1Prime + h2Prime) / 2;
+    var hBarPrime = Math.abs(h1Prime - h2Prime) > Math.PI ?
+        (h1Prime + h2Prime + 2 * Math.PI) / 2 :
+        (h1Prime + h2Prime) / 2;
 
-    var deltaHPrimeRaw = Math.abs(h1Prime - h2Prime) > Math.PI
-        ? h2Prime - h1Prime + 2 * Math.PI * (h2Prime <= h1Prime ? 1 : -1)
-        : h2Prime - h1Prime;
+    var deltaHPrimeRaw = Math.abs(h1Prime - h2Prime) > Math.PI ?
+        h2Prime - h1Prime + 2 * Math.PI * (h2Prime <= h1Prime ? 1 : -1) :
+        h2Prime - h1Prime;
 
     var deltaLPrime = lab2[0] - lab1[0];
     var deltaCPrime = c2Prime - c1Prime;
     var deltaHPrime = 2 * Math.sqrt(c1Prime * c2Prime) * Math.sin(deltaHPrimeRaw / 2);
 
     var lBar = (lab1[0] + lab2[0]) / 2;
-    var t = 1
-        - 0.17 * Math.cos(hBarPrime - degToRad(30))
-        + 0.24 * Math.cos(2 * hBarPrime)
-        + 0.32 * Math.cos(3 * hBarPrime + degToRad(6))
-        - 0.20 * Math.cos(4 * hBarPrime - degToRad(63));
+    var t = 1 -
+        0.17 * Math.cos(hBarPrime - degToRad(30)) +
+        0.24 * Math.cos(2 * hBarPrime) +
+        0.32 * Math.cos(3 * hBarPrime + degToRad(6)) -
+        0.20 * Math.cos(4 * hBarPrime - degToRad(63));
 
     var sl = 1 + (0.015 * Math.pow(lBar - 50, 2)) / Math.sqrt(20 + Math.pow(lBar - 50, 2));
     var sc = 1 + 0.045 * cBarPrime;
