@@ -11,7 +11,7 @@
     https://github.com/MarshySwamp/CIE_Color_Difference_Calculator
     https://community.adobe.com/t5/photoshop-ecosystem-discussions/how-does-photoshop-calculate-lab-values/m-p/15028840
 
-    Changelog:
+        Changelog:
     v1.0 - 10th December 2024:  Private testing.
     v1.1 - 10th December 2024:  Initial public release, no GUI.
     v1.2 - 31st May 2026:       Added (LCh) Lightness, Chroma & hue readings.
@@ -35,6 +35,8 @@
     v2.2 - 27th July 2026:      Swapped Delta L, a, b, C, h subtraction calculation order from reference/sample to sample/reference.
     v2.3 - 31st July 2026:      Added a "Round values" checkbox (to 2 decimal places), when off the results are now truncated to 6
                                 decimal places. Checking the box restores the previous rounding behaviour. Minor GUI changes.
+    v2.4 - 31st July 2026:      Fixed a bug where a failed switch to Color Samplers (no document / not enough samplers) always reverted the
+                                radio button selection to Foreground/Background. It now restores the source that was previously active.
 
 */
 
@@ -65,7 +67,7 @@ function main() {
     // -----------------------------------------------------------------------
     // ScriptUI Dialog
     // -----------------------------------------------------------------------
-    var win = new Window("dialog", "CIE Color Difference Calculator (v2.3)");
+    var win = new Window("dialog", "CIE Color Difference Calculator (v2.4)");
     win.alignChildren = "fill";
     win.spacing = 12;
     win.margins = 12;
@@ -492,6 +494,22 @@ function main() {
     };
 
     // -----------------------------------------------------------------------
+    // Helper: re-checks whichever radio button was active before a failed
+    // attempt to switch to the Color Sampler source. colorSourceMode still
+    // holds the pre-click mode at this point (it's only reassigned once
+    // validation succeeds), and nothing else was touched by the failed
+    // attempt, so this simply restores the radio button UI to match reality -
+    // without resetting the manual entry fields or panel enabled state.
+    // -----------------------------------------------------------------------
+    function restorePreviousSourceRadio() {
+        if (colorSourceMode === "manual") {
+            rbManual.value = true;
+        } else {
+            rbFgBg.value = true;
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Color Samplers - validates that a document with at least 2 color
     // samplers is available before committing to this mode.
     // -----------------------------------------------------------------------
@@ -499,8 +517,7 @@ function main() {
 
         if (!app.documents.length) {
             alert("No document open.\n\nOpen a document and place at least 2 color samplers before using this mode.");
-            rbFgBg.value = true;
-            colorSourceMode = "fgbg";
+            restorePreviousSourceRadio();
             return;
         }
 
@@ -511,8 +528,7 @@ function main() {
                 "Currently found: " + activeDoc.colorSamplers.length + "\n\n" +
                 "Add color samplers with the Color Sampler tool (I) and try again.\n" +
                 "This mode compares Color Sampler 1 vs. Color Sampler 2.");
-            rbFgBg.value = true;
-            colorSourceMode = "fgbg";
+            restorePreviousSourceRadio();
             return;
         }
 
