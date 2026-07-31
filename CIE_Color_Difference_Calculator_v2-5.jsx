@@ -11,7 +11,7 @@
     https://github.com/MarshySwamp/CIE_Color_Difference_Calculator
     https://community.adobe.com/t5/photoshop-ecosystem-discussions/how-does-photoshop-calculate-lab-values/m-p/15028840
 
-        Changelog:
+    Changelog:
     v1.0 - 10th December 2024:  Private testing.
     v1.1 - 10th December 2024:  Initial public release, no GUI.
     v1.2 - 31st May 2026:       Added (LCh) Lightness, Chroma & hue readings.
@@ -37,6 +37,9 @@
                                 decimal places. Checking the box restores the previous rounding behaviour. Minor GUI changes.
     v2.4 - 31st July 2026:      Fixed a bug where a failed switch to Color Samplers (no document / not enough samplers) always reverted the
                                 radio button selection to Foreground/Background. It now restores the source that was previously active.
+    v2.5 - 31st July 2026:      Once the Manual Entry fields have been edited to no longer match the Foreground/Background values,
+                                those custom entries are now remembered and restored if the user switches back to Manual Entry, instead
+                                of being silently overwritten and lost. Minor GUI changes.
 
 */
 
@@ -65,9 +68,17 @@ function main() {
     var colorSourceMode = "fgbg";
 
     // -----------------------------------------------------------------------
+    // v2.5
+    // Remembers the most recent Manual Entry field values. Custom entries can
+    // be restored later even after the shared fields have been overwritten.
+    // -----------------------------------------------------------------------
+    var savedManualLab1 = initialFgLab.slice();
+    var savedManualLab2 = initialBgLab.slice();
+
+    // -----------------------------------------------------------------------
     // ScriptUI Dialog
     // -----------------------------------------------------------------------
-    var win = new Window("dialog", "CIE Color Difference Calculator (v2.4)");
+    var win = new Window("dialog", "CIE Color Difference Calculator (v2.5)");
     win.alignChildren = "fill";
     win.spacing = 12;
     win.margins = 12;
@@ -163,7 +174,7 @@ function main() {
     panel.margins = 12;
 
     // -----------------------------------------------------------------------
-    // Radio buttons: dE mode selector (upper left of the panel)
+    // Radio buttons: dE mode selector (upper left of the results panel)
     // -----------------------------------------------------------------------
     var modeGroup = panel.add("group");
     modeGroup.orientation = "row";
@@ -285,11 +296,11 @@ function main() {
     // -----------------------------------------------------------------------
     function updateLabelsForMode() {
         if (colorSourceMode === "sampler") {
-            headingText.text = "Color Sampler 1 vs. Color Sampler 2 Difference:";
+            headingText.text = "Color Sampler 1 (Reference) vs. Color Sampler 2 (Sample) Difference:";
         } else if (colorSourceMode === "manual") {
-            headingText.text = "Manual Entry 1 vs. Manual Entry 2 Difference:";
+            headingText.text = "Manual Entry 1 (Reference) vs. Manual Entry 2 (Sample) Difference:";
         } else {
-            headingText.text = "Foreground vs. Background Color Picker Difference:";
+            headingText.text = "Foreground (Reference ) vs. Background (Sample) Color Picker Difference:";
         }
     }
 
@@ -554,14 +565,44 @@ function main() {
     };
 
     // -----------------------------------------------------------------------
-    // Manual Entry - unlocks both input panels for free editing. The values
-    // already showing (whichever source was active) are left in place as a
-    // convenient starting point for manual adjustment.
+    // Helper: true once the Manual Entry fields have actually been edited to
+    // differ from the Foreground/Background values captured at script start.
+    // Used to decide, when re-entering Manual Entry mode, whether to restore
+    // those custom values or just leave whatever the most recently active
+    // source (FG/BG or Color Samplers) is currently showing.
+    // -----------------------------------------------------------------------
+    function manualValuesAreCustomized() {
+        return savedManualLab1[0] !== initialFgLab[0] ||
+            savedManualLab1[1] !== initialFgLab[1] ||
+            savedManualLab1[2] !== initialFgLab[2] ||
+            savedManualLab2[0] !== initialBgLab[0] ||
+            savedManualLab2[1] !== initialBgLab[1] ||
+            savedManualLab2[2] !== initialBgLab[2];
+    }
+
+    // -----------------------------------------------------------------------
+    // Manual Entry - unlocks both input panels for free editing.
+    //
+    // If the fields have previously been customized (edited to no longer
+    // match the Foreground/Background values), those custom entries are
+    // restored so they aren't lost after switching away to FG/BG or Color
+    // Samplers and back. Otherwise, the values already showing (whichever
+    // source was active) are left in place as a convenient starting point,
+    // as before.
     // -----------------------------------------------------------------------
     rbManual.onClick = function() {
         colorSourceMode = "manual";
         manOneInputPanel.enabled = true;
         manTwoInputPanel.enabled = true;
+
+        if (manualValuesAreCustomized()) {
+            manOneL.value = savedManualLab1[0];
+            manOneA.value = savedManualLab1[1];
+            manOneB.value = savedManualLab1[2];
+            manTwoL.value = savedManualLab2[0];
+            manTwoA.value = savedManualLab2[1];
+            manTwoB.value = savedManualLab2[2];
+        }
 
         updateLabelsForMode();
         recalculate();
@@ -590,6 +631,14 @@ function main() {
                 v = max;
             }
             field.value = v;
+
+            // Keep the saved custom values in sync with live edits so they
+            // can be restored later if the user switches away and back.
+            if (colorSourceMode === "manual") {
+                savedManualLab1 = [manOneL.value, manOneA.value, manOneB.value];
+                savedManualLab2 = [manTwoL.value, manTwoA.value, manTwoB.value];
+            }
+
             recalculate();
         };
     }
