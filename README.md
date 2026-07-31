@@ -1,4 +1,4 @@
-<img width="643" height="724" alt="dE-v2-0" src="https://github.com/user-attachments/assets/e4ca202c-ee52-4ee1-880d-d29e7b690ebd" />
+<img width="687" height="814" alt="dE-Calc-2-5" src="https://github.com/user-attachments/assets/5a2e146d-55f6-4997-8ef9-1e7783a4c2a7" />
 
 Calculates the color difference (ΔE/dE/Delta E) between two sources, directly inside Photoshop.
 
