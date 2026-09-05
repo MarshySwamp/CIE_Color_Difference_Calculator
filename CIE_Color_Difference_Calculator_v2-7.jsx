@@ -42,13 +42,133 @@
                                of being silently overwritten and lost. Minor GUI changes.
     v2.6 - 26th August 2026:   As scripting can't access the eyedropper sample size (point sample vs. 3 x 3 etc.), I have added a checkbox
                                to average out noise or small variations from the results of the color samplers.
+    v2.7 - 5th September 2026: Added a confirm dialog on launch offering to temporarily switch the color settings rendering intent to
+                               Absolute Colorimetric. The original rendering intent is automatically restored when the dialog is closed.
 */
 
 #target photoshop
 
-main();
+// ------------------------------------------------------------------------
+// v2.7
+// ActionManager helpers for getting and setting the application's colour
+// settings rendering intent.
+// ------------------------------------------------------------------------
+var c2t = function(s) {
+    return app.charIDToTypeID(s);
+};
+var s2t = function(s) {
+    return app.stringIDToTypeID(s);
+};
+var t2s = function(t) {
+    return app.typeIDToStringID(t);
+};
 
-function main() {
+// Gets the current rendering intent as a stringID (e.g. "absColorimetric", "colorimetric", "image", "graphics")
+function getRenderingIntent() {
+    var reference = new ActionReference();
+    reference.putProperty(s2t("property"), s2t("colorSettings"));
+    reference.putEnumerated(s2t("application"), s2t("ordinal"), s2t("targetEnum"));
+    var desc = executeActionGet(reference);
+    var colorSettingsDesc = desc.getObjectValue(s2t("colorSettings"));
+    var intentID = colorSettingsDesc.getEnumerationValue(s2t("intent"));
+    return t2s(intentID);
+}
+
+// Sets the rendering intent, given a stringID (e.g. "absColorimetric", "colorimetric", "image", "graphics")
+function setRenderingIntent(intentString) {
+    var descriptor = new ActionDescriptor();
+    var descriptor2 = new ActionDescriptor();
+    var reference = new ActionReference();
+    reference.putProperty(s2t("property"), s2t("colorSettings"));
+    reference.putEnumerated(s2t("application"), s2t("ordinal"), s2t("targetEnum"));
+    descriptor.putReference(c2t("null"), reference);
+    descriptor2.putEnumerated(s2t("intent"), s2t("intent"), s2t(intentString));
+    descriptor.putObject(s2t("to"), s2t("colorSettings"), descriptor2);
+    executeAction(s2t("set"), descriptor, DialogModes.NO);
+}
+
+// Friendly display names for the rendering intent stringIDs, used only in
+// the confirm dialog text below.
+var renderingIntentLabels = {
+    "perceptual": "Perceptual",
+    "saturation": "Saturation",
+    "colorimetric": "Relative Colorimetric",
+    "absColorimetric": "Absolute Colorimetric"
+};
+
+function renderingIntentLabel(intentString) {
+    return renderingIntentLabels[intentString] || intentString;
+}
+
+runScript();
+
+// ------------------------------------------------------------------------
+// v2.7
+// The runScript function captures the rendering intent that was active before
+// the script ran, then asks whether to temporarily switch it to Absolute
+// Colorimetric readings while the main() dialog is open. The original rendering
+// intent is restored when the main() dialog is exited.
+// ------------------------------------------------------------------------
+function runScript() {
+
+    var originalIntent = null;
+    var intentChanged = false;
+
+    try {
+        originalIntent = getRenderingIntent();
+    } catch (e) {
+        // Could not read the current rendering intent - skip the prompt
+        // below and run the calculator without touching color settings.
+        originalIntent = null;
+    }
+
+    if (originalIntent !== null && originalIntent !== "absColorimetric") {
+        var useAbsColorimetric = confirm(
+            "This script can temporarily set the rendering intent to Absolute Colorimetric while it runs.\n\n" +
+            "Current rendering intent: " + renderingIntentLabel(originalIntent) + "\n\n" +
+            "Your original rendering intent will be restored automatically when the script is exited.\n\n" +
+            "Set rendering intent to Absolute Colorimetric now?"
+        );
+
+        if (useAbsColorimetric) {
+            try {
+                setRenderingIntent("absColorimetric");
+                intentChanged = true;
+            } catch (e) {
+                alert("Could not change the rendering intent:\n\n" + e);
+                intentChanged = false;
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    // Restores the rendering intent captured above, but only if it was
+    // actually changed. Safe to call more than once (e.g. from both a button
+    // handler and a window close handler).
+    // ------------------------------------------------------------------------
+    function restoreRenderingIntent() {
+        if (!intentChanged) {
+            return;
+        }
+        try {
+            setRenderingIntent(originalIntent);
+        } catch (e) {
+            // Nothing more we can do if this fails.
+        }
+        intentChanged = false;
+    }
+
+    try {
+        main(restoreRenderingIntent);
+    } catch (e) {
+        // Make sure the original rendering intent is restored even if
+        // main() throws unexpectedly.
+        restoreRenderingIntent();
+        throw e;
+    }
+}
+
+function main(restoreRenderingIntent) {
 
     // ------------------------------------------------------------------------
     // Start with the Foreground / Background colors - always available, no doc
@@ -79,7 +199,7 @@ function main() {
     // ------------------------------------------------------------------------
     // ScriptUI Dialog
     // ------------------------------------------------------------------------
-    var win = new Window("dialog", "CIE Color Difference Calculator (v2.6)");
+    var win = new Window("dialog", "CIE Color Difference Calculator (v2.7)");
     win.alignChildren = "fill";
     win.spacing = 12;
     win.margins = 12;
@@ -795,6 +915,7 @@ function main() {
     // ------------------------------------------------------------------------
     cancelBtn.onClick = function() {
         closeTempAvgDoc();
+        restoreRenderingIntent();
         win.close();
     };
 
@@ -803,7 +924,16 @@ function main() {
         var d = new ActionDescriptor();
         d.putString(stringIDToTypeID("textData"), win._alertText || "");
         executeAction(stringIDToTypeID("textToClipboard"), d, DialogModes.NO);
+        restoreRenderingIntent();
         win.close();
+    };
+
+    // ------------------------------------------------------------------------
+    // v2.7
+    // The original rendering intent should be restored when the dialog is closed.
+    // ------------------------------------------------------------------------
+    win.onClose = function() {
+        restoreRenderingIntent();
     };
 
     // ------------------------------------------------------------------------
